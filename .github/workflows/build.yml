@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # corta el job si se cuelga, en vez de esperar horas
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Android SDK 36
+        run: |
+          # Aceptar licencias (yes + pipefail devuelve error 141, por eso el || true solo aquí)
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          # Sin "|| true": si falla la instalación, el job debe fallar con un error visible
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Compilar APK release (R8)
+        run: gradle assembleRelease --stacktrace --no-daemon
+
+      - name: Nombrar el APK
+        run: cp app/build/outputs/apk/release/app-release.apk BlazePlayer-build${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlazePlayer-apk
+          path: BlazePlayer-build${{ github.run_number }}.apk
+
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Blaze Player build ${{ github.run_number }}
+          files: BlazePlayer-build${{ github.run_number }}.apk
