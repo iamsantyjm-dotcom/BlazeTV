@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,15 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -59,6 +69,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -113,6 +124,19 @@ fun AppRoot(vm: MainViewModel) {
 
     val overlayOpen = detail != null || searchOpen
 
+    // Atajos del control remoto: dónde está el foco ahora (arriba, abajo o en el contenido).
+    val focusManager = LocalFocusManager.current
+    val gearRequester = remember { FocusRequester() }
+    val tabRequesters = remember { List(Tabs.size) { FocusRequester() } }
+    var searchFocused by remember { mutableStateOf(false) }
+    var gearFocused by remember { mutableStateOf(false) }
+    var pillFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(playerOpen, overlayOpen) {
+        searchFocused = false
+        gearFocused = false
+        pillFocused = false
+    }
+
     // Ajustes se abre y se cierra con el engrane de arriba; Atrás también lo cierra.
     fun toggleSettings() {
         if (tab == SETTINGS_TAB) {
@@ -127,7 +151,36 @@ fun AppRoot(vm: MainViewModel) {
         toggleSettings()
     }
 
-    Box(Modifier.fillMaxSize().background(Ink)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Ink)
+            .onPreviewKeyEvent { ev ->
+                if (ev.type != KeyEventType.KeyDown || playerOpen || overlayOpen) return@onPreviewKeyEvent false
+                val inSettings = tab == SETTINGS_TAB
+                val onSearch = searchFocused && !inSettings
+                val onPill = pillFocused && !inSettings
+                val inContent = !onSearch && !gearFocused && !onPill
+                val currentTab = if (inSettings) previousTab else tab
+                when (ev.key) {
+                    // Derecha: se mueve normal por la cuadrícula; solo si ya no hay nada a la
+                    // derecha salta a lo más alto (Ajustes).
+                    Key.DirectionRight -> if (inContent) {
+                        focusManager.moveFocus(FocusDirection.Right) ||
+                            runCatching { gearRequester.requestFocus() }.isSuccess
+                    } else false
+                    // Izquierda: se mueve normal; solo si ya no hay nada a la izquierda salta abajo,
+                    // a la pestaña activa. Desde Buscar salta directo.
+                    Key.DirectionLeft -> if (!inSettings && onSearch) {
+                        runCatching { tabRequesters[currentTab].requestFocus() }.isSuccess
+                    } else if (!inSettings && inContent) {
+                        focusManager.moveFocus(FocusDirection.Left) ||
+                            runCatching { tabRequesters[currentTab].requestFocus() }.isSuccess
+                    } else false
+                    else -> false
+                }
+            },
+    ) {
         // El fondo cambia de tono suavemente según la pestaña: es el único efecto animado que se conserva.
         val moodA by animateColorAsState(moodOf(tab).first, tween(1100), label = "moodA")
         val moodB by animateColorAsState(moodOf(tab).second, tween(1100), label = "moodB")
@@ -167,7 +220,12 @@ fun AppRoot(vm: MainViewModel) {
                     enter = fadeIn(tween(200)),
                     exit = fadeOut(tween(150)),
                 ) {
-                    CircleGlassButton(Icons.Rounded.Search, "Buscar en todo", TextHi) {
+                    CircleGlassButton(
+                        Icons.Rounded.Search,
+                        "Buscar en todo",
+                        TextHi,
+                        modifier = Modifier.onFocusChanged { searchFocused = it.hasFocus },
+                    ) {
                         searchOpen = true
                     }
                 }
@@ -175,6 +233,9 @@ fun AppRoot(vm: MainViewModel) {
                     Icons.Rounded.Settings,
                     "Ajustes",
                     if (tab == SETTINGS_TAB) Lavender else TextHi,
+                    modifier = Modifier
+                        .focusRequester(gearRequester)
+                        .onFocusChanged { gearFocused = it.hasFocus },
                 ) { toggleSettings() }
             }
         }
@@ -208,6 +269,8 @@ fun AppRoot(vm: MainViewModel) {
                     NavPill(
                         selected = if (tab == SETTINGS_TAB) previousTab else tab,
                         onSelect = { tab = it },
+                        requesters = tabRequesters,
+                        onFocusChange = { pillFocused = it },
                     )
                 }
             }
@@ -229,7 +292,12 @@ fun AppRoot(vm: MainViewModel) {
  * (una sola transición de 250 ms, sin rebotes) y cada pestaña se enfoca con el control remoto.
  */
 @Composable
-private fun NavPill(selected: Int, onSelect: (Int) -> Unit) {
+private fun NavPill(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    requesters: List<FocusRequester>,
+    onFocusChange: (Boolean) -> Unit,
+) {
     val n = Tabs.size
     val lefts = remember { List(n) { 0f }.toMutableStateList() }
     val widths = remember { List(n) { 0f }.toMutableStateList() }
@@ -246,7 +314,7 @@ private fun NavPill(selected: Int, onSelect: (Int) -> Unit) {
         label = "indAncho",
     )
 
-    Box(Modifier.glassPill(PillShape).padding(6.dp)) {
+    Box(Modifier.onFocusChanged { onFocusChange(it.hasFocus) }.glassPill(PillShape).padding(6.dp)) {
         Row(
             modifier = Modifier.drawBehind {
                 if (!measured) return@drawBehind
@@ -280,6 +348,7 @@ private fun NavPill(selected: Int, onSelect: (Int) -> Unit) {
                             if (lefts[i] != x) lefts[i] = x
                             if (widths[i] != w) widths[i] = w
                         }
+                        .focusRequester(requesters[i])
                         .pressClick(shape = CircleShape) { onSelect(i) }
                         .padding(horizontal = padH, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -392,13 +461,15 @@ private fun CircleGlassButton(
     icon: ImageVector,
     description: String,
     tint: Color,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        // pressClick va antes de glassPill para que el halo de foco no quede recortado por el círculo.
+        modifier = modifier
             .size(44.dp)
-            .glassPill(CircleShape)
-            .pressClick(shape = CircleShape, onClick = onClick),
+            .pressClick(shape = CircleShape, onClick = onClick)
+            .glassPill(CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

@@ -10,7 +10,10 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -84,4 +87,35 @@ private fun DrawScope.drawFocusOutline(shape: Shape, stroke: Stroke, color: Colo
         )
         is Outline.Generic -> drawPath(path = outline.path, color = color, style = stroke)
     }
+}
+
+/**
+ * Indicador de foco bien visible para botones y campos de Material (Button, TextButton,
+ * IconButton, TextField) que no usan [pressClick]: halo de color grueso + borde blanco.
+ * Ponlo en el `modifier` del componente. En campos de texto usa scale = false.
+ */
+@Composable
+fun Modifier.focusRing(
+    shape: Shape = RoundedCornerShape(percent = 50),
+    scale: Boolean = true,
+): Modifier {
+    var focused by remember { mutableStateOf(false) }
+    val s by animateFloatAsState(
+        targetValue = if (focused && scale) 1.08f else 1f,
+        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        label = "ringScale",
+    )
+    return this
+        .onFocusChanged { focused = it.hasFocus }
+        .graphicsLayer {
+            scaleX = s
+            scaleY = s
+        }
+        .drawWithContent {
+            drawContent()
+            if (focused) {
+                drawFocusOutline(shape, Stroke(width = 16.dp.toPx()), Lavender.copy(alpha = 0.55f))
+                drawFocusOutline(shape, Stroke(width = 4.dp.toPx()), Color.White)
+            }
+        }
 }

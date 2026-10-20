@@ -344,7 +344,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
         Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(onClick = onBack, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Volver", tint = TextHi)
         }
         Text(
@@ -411,6 +411,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Button(
+                        modifier = Modifier.focusRing(),
                         onClick = { adding = true },
                         colors = ButtonDefaults.buttonColors(containerColor = Lavender, contentColor = Ink),
                     ) {
@@ -418,6 +419,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
                         Text("Agregar lista", modifier = Modifier.padding(start = 6.dp))
                     }
                     TextButton(
+                        modifier = Modifier.focusRing(),
                         onClick = { picker.launch(arrayOf("*/*")) },
                         colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
                     ) { Text("Desde un archivo") }
@@ -425,6 +427,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
             }
             item {
                 TextButton(
+                    modifier = Modifier.focusRing(),
                     onClick = { if (!loading) vm.refreshAll() },
                     colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
                 ) { Text(if (loading) "Actualizando…" else "Actualizar listas ahora") }
@@ -481,6 +484,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
             },
             confirmButton = {
                 TextButton(
+                    modifier = Modifier.focusRing(),
                     onClick = {
                         vm.removeSource(del.id)
                         deleting = null
@@ -490,6 +494,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
+                    modifier = Modifier.focusRing(),
                     onClick = { deleting = null },
                     colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
                 ) { Text("Cancelar") }
@@ -524,10 +529,10 @@ private fun SourceRow(src: PlaylistSource, onEdit: () -> Unit, onDelete: () -> U
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onEdit) {
+        IconButton(onClick = onEdit, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Rounded.Edit, contentDescription = "Editar lista", tint = TextHi)
         }
-        IconButton(onClick = onDelete) {
+        IconButton(onClick = onDelete, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Rounded.Delete, contentDescription = "Quitar lista", tint = Coral)
         }
     }
@@ -574,6 +579,7 @@ private fun SourceDialog(
         },
         confirmButton = {
             TextButton(
+                modifier = Modifier.focusRing(),
                 onClick = { onConfirm(name, clean) },
                 enabled = valid,
                 colors = ButtonDefaults.textButtonColors(contentColor = Lavender, disabledContentColor = TextLo),
@@ -581,6 +587,7 @@ private fun SourceDialog(
         },
         dismissButton = {
             TextButton(
+                modifier = Modifier.focusRing(),
                 onClick = onDismiss,
                 colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
             ) { Text("Cancelar") }
@@ -598,7 +605,7 @@ private fun DialogField(value: String, label: String, singleLine: Boolean, onCha
         label = { Text(label, color = TextLo) },
         shape = RoundedCornerShape(16.dp),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.White.copy(alpha = 0.08f),
+            focusedContainerColor = Color.White.copy(alpha = 0.14f),
             unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
@@ -606,7 +613,7 @@ private fun DialogField(value: String, label: String, singleLine: Boolean, onCha
             focusedTextColor = TextHi,
             unfocusedTextColor = TextHi,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRing(RoundedCornerShape(16.dp), scale = false),
     )
 }
 
@@ -649,11 +656,13 @@ private fun FoldersPage(vm: MainViewModel, kind: Kind, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             TextButton(
+                modifier = Modifier.focusRing(),
                 onClick = { vm.setFoldersHidden(kind, shown.map { it.name }, false) },
                 colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
             ) { Text(if (query.isBlank()) "Mostrar todas" else "Mostrar estas") }
             if (query.isNotBlank() && shown.isNotEmpty()) {
                 TextButton(
+                    modifier = Modifier.focusRing(),
                     onClick = { vm.setFoldersHidden(kind, shown.map { it.name }, true) },
                     colors = ButtonDefaults.textButtonColors(contentColor = Coral),
                 ) { Text("Ocultar estas (${shown.size})") }
@@ -843,6 +852,7 @@ private fun PinDialog(
         },
         confirmButton = {
             TextButton(
+                modifier = Modifier.focusRing(),
                 enabled = valid,
                 onClick = {
                     error = if (confirm && pin != again) "Los PIN no coinciden" else onSubmit(pin)
@@ -852,6 +862,7 @@ private fun PinDialog(
         },
         dismissButton = {
             TextButton(
+                modifier = Modifier.focusRing(),
                 onClick = onDismiss,
                 colors = ButtonDefaults.textButtonColors(contentColor = Lavender),
             ) { Text("Cancelar") }
@@ -878,5 +889,6 @@ private fun PinField(value: String, label: String, onChange: (String) -> Unit) {
             unfocusedIndicatorColor = Color.Transparent,
             cursorColor = Lavender,
         ),
+        modifier = Modifier.focusRing(RoundedCornerShape(16.dp), scale = false),
     )
 }
