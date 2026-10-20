@@ -7,12 +7,18 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -46,7 +52,9 @@ fun Modifier.pressClick(
         animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
         label = "focusScale",
     )
+    val follow = rememberFocusScroll(focused)
     return this
+        .then(follow)
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
@@ -100,6 +108,7 @@ fun Modifier.focusRing(
     scale: Boolean = true,
 ): Modifier {
     var focused by remember { mutableStateOf(false) }
+    val follow = rememberFocusScroll(focused)
     val s by animateFloatAsState(
         targetValue = if (focused && scale) 1.08f else 1f,
         animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
@@ -107,6 +116,7 @@ fun Modifier.focusRing(
     )
     return this
         .onFocusChanged { focused = it.hasFocus }
+        .then(follow)
         .graphicsLayer {
             scaleX = s
             scaleY = s
@@ -118,4 +128,24 @@ fun Modifier.focusRing(
                 drawFocusOutline(shape, Stroke(width = 4.dp.toPx()), Color.White)
             }
         }
+}
+
+/**
+ * Hace que la lista se desplace sola para que el elemento con foco quede a la vista
+ * (con un margen, para que no lo tape la barra de abajo). Así el indicador del control
+ * remoto no "desaparece" al bajar más allá de lo que se ve en pantalla.
+ */
+@Composable
+private fun rememberFocusScroll(focused: Boolean): Modifier {
+    val requester = remember { BringIntoViewRequester() }
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    val margin = with(androidx.compose.ui.platform.LocalDensity.current) { 120.dp.toPx() }
+    LaunchedEffect(focused) {
+        if (focused && size.width > 0) {
+            requester.bringIntoView(Rect(0f, -margin, size.width.toFloat(), size.height + margin))
+        }
+    }
+    return Modifier
+        .onSizeChanged { size = it }
+        .bringIntoViewRequester(requester)
 }
