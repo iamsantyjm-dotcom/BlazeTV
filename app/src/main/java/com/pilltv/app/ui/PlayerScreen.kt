@@ -292,7 +292,7 @@ fun PlayerScreen(vm: MainViewModel) {
             },
         )
     }
-    Row(
+    Box(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
@@ -336,7 +336,9 @@ fun PlayerScreen(vm: MainViewModel) {
                 }
             },
     ) {
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        // El video y los controles dejan libre el costado derecho cuando se ve la cola.
+        val queueVisible = showQueue && queueItems.size > 1
+        Box(Modifier.fillMaxSize().padding(end = if (queueVisible) 320.dp else 0.dp)) {
         AndroidView(
             factory = { c ->
                 PlayerView(c).apply {
@@ -558,8 +560,9 @@ fun PlayerScreen(vm: MainViewModel) {
         }
         }
 
-        if (showQueue && queueItems.size > 1) {
+        if (queueVisible) {
             QueuePanel(
+                modifier = Modifier.align(Alignment.CenterEnd),
                 items = queueItems,
                 current = ch,
                 onPick = {
@@ -642,6 +645,7 @@ private fun QualityDialog(options: List<TrackOption>, onPick: (Int) -> Unit, onD
 /** Cola de reproducción al costado del reproductor: la lista en la que se está viendo, con el canal actual marcado. */
 @Composable
 private fun QueuePanel(
+    modifier: Modifier = Modifier,
     items: List<Channel>,
     current: Channel,
     onPick: (Channel) -> Unit,
@@ -652,7 +656,7 @@ private fun QueuePanel(
         if (index > 0) listState.scrollToItem(index)
     }
     Column(
-        Modifier
+        modifier
             .width(320.dp)
             .fillMaxHeight()
             .background(Brush.verticalGradient(listOf(Color(0xE6402A5C), Color(0xF2120D1A))))
