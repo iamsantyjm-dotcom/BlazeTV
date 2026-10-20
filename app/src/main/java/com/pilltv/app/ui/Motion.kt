@@ -13,6 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -51,8 +55,26 @@ fun Modifier.pressClick(
         .drawWithContent {
             drawContent()
             if (focused) {
-                val outline = shape.createOutline(size, layoutDirection, this)
-                drawOutline(outline = outline, color = Lavender, style = Stroke(width = 3.dp.toPx()))
+                val stroke = Stroke(width = 3.dp.toPx())
+                when (val outline = shape.createOutline(size, layoutDirection, this)) {
+                    is Outline.Rectangle -> drawRect(
+                        color = Lavender,
+                        topLeft = outline.rect.topLeft,
+                        size = outline.rect.size,
+                        style = stroke,
+                    )
+                    is Outline.Rounded -> drawRoundRect(
+                        color = Lavender,
+                        topLeft = Offset(outline.roundRect.left, outline.roundRect.top),
+                        size = Size(outline.roundRect.width, outline.roundRect.height),
+                        cornerRadius = CornerRadius(
+                            outline.roundRect.topLeftCornerRadius.x,
+                            outline.roundRect.topLeftCornerRadius.y,
+                        ),
+                        style = stroke,
+                    )
+                    is Outline.Generic -> drawPath(path = outline.path, color = Lavender, style = stroke)
+                }
             }
         }
 }

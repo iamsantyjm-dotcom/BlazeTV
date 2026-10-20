@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusGroup
-import androidx.compose.ui.focus.focusProperties
 import com.pilltv.app.MainViewModel
 
 /**
@@ -19,10 +16,7 @@ fun SearchOverlay(vm: MainViewModel, onClose: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Ink)
-            // Con el mando, el foco no debe salir de la búsqueda hacia la pantalla de debajo.
-            .focusGroup()
-            .focusProperties { exit = { FocusRequester.Cancel } },
+            .background(Ink),
     ) {
         SearchScreen(vm, onClose = onClose)
     }

@@ -638,7 +638,7 @@ private fun QualityDialog(options: List<TrackOption>, onPick: (Int) -> Unit, onD
 }
 
 /** Cola de reproducción: la lista en la que se está viendo, con el canal actual marcado. */
-@OptIn(ExperimentalMaterial3Api::class)
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueSheet(
     items: List<Channel>,
