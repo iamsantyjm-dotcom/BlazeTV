@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,7 +50,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -170,7 +170,8 @@ fun PlayerScreen(vm: MainViewModel) {
 
     var showTracks by remember { mutableStateOf(false) }
     var showQuality by remember { mutableStateOf(false) }
-    var showQueue by remember { mutableStateOf(false) }
+    // La cola va al costado del reproductor; el botón la muestra u oculta.
+    var showQueue by remember { mutableStateOf(true) }
 
     var controls by remember { mutableStateOf(true) }
     var tick by remember { mutableIntStateOf(0) }
@@ -291,20 +292,7 @@ fun PlayerScreen(vm: MainViewModel) {
             },
         )
     }
-    if (showQueue) {
-        QueueSheet(
-            items = queueItems,
-            current = ch,
-            onPick = {
-                vm.play(it, queueItems)
-                showQueue = false
-                tick++
-            },
-            onDismiss = { showQueue = false },
-        )
-    }
-
-    Box(
+    Row(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
@@ -348,6 +336,7 @@ fun PlayerScreen(vm: MainViewModel) {
                 }
             },
     ) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
         AndroidView(
             factory = { c ->
                 PlayerView(c).apply {
@@ -434,7 +423,8 @@ fun PlayerScreen(vm: MainViewModel) {
                     // Cola de reproducción: canales de la lista o capítulos de la serie.
                     if (queueItems.size > 1) {
                         ControlButton(Icons.Rounded.QueueMusic, "Cola de reproducción") {
-                            showQueue = true
+                            showQueue = !showQueue
+                            tick++
                         }
                     }
                     // Calidad: solo si el video tiene más de una resolución disponible.
@@ -566,6 +556,18 @@ fun PlayerScreen(vm: MainViewModel) {
                 }
             }
         }
+        }
+
+        if (showQueue && queueItems.size > 1) {
+            QueuePanel(
+                items = queueItems,
+                current = ch,
+                onPick = {
+                    vm.play(it, queueItems)
+                    tick++
+                },
+            )
+        }
     }
 }
 
@@ -637,76 +639,73 @@ private fun QualityDialog(options: List<TrackOption>, onPick: (Int) -> Unit, onD
     )
 }
 
-/** Cola de reproducción: la lista en la que se está viendo, con el canal actual marcado. */
-@kotlin.OptIn(ExperimentalMaterial3Api::class)
+/** Cola de reproducción al costado del reproductor: la lista en la que se está viendo, con el canal actual marcado. */
 @Composable
-private fun QueueSheet(
+private fun QueuePanel(
     items: List<Channel>,
     current: Channel,
     onPick: (Channel) -> Unit,
-    onDismiss: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     val index = items.indexOfFirst { it.url == current.url }
     LaunchedEffect(index) {
         if (index > 0) listState.scrollToItem(index)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.Transparent) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xB8402A5C), Color(0xE6120D1A))))
-                .padding(bottom = 16.dp),
+    Column(
+        Modifier
+            .width(320.dp)
+            .fillMaxHeight()
+            .background(Brush.verticalGradient(listOf(Color(0xE6402A5C), Color(0xF2120D1A))))
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(vertical = 12.dp),
+    ) {
+        Text(
+            text = "Cola de reproducción",
+            color = TextHi,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "Cola de reproducción",
-                color = TextHi,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(items, key = { it.url }) { c ->
-                    val isNow = c.url == current.url
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .glassCard(RoundedCornerShape(16.dp), tint = if (isNow) Lavender else null)
-                            .pressClick(shape = RoundedCornerShape(16.dp)) { onPick(c) }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        ChannelLogo(c, 40.dp)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = c.name,
-                                color = TextHi,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = c.group,
-                                color = TextLo,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        if (isNow) {
-                            Icon(Icons.Rounded.PlayArrow, contentDescription = "Reproduciendo", tint = Lavender)
-                        }
+            items(items, key = { it.url }) { c ->
+                val isNow = c.url == current.url
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .glassCard(RoundedCornerShape(16.dp), tint = if (isNow) Lavender else null)
+                        .pressClick(shape = RoundedCornerShape(16.dp)) { onPick(c) }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ChannelLogo(c, 40.dp)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = c.name,
+                            color = TextHi,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = c.group,
+                            color = TextLo,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (isNow) {
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = "Reproduciendo", tint = Lavender)
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
         }
     }
 }

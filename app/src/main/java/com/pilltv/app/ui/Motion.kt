@@ -16,8 +16,10 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -55,26 +57,31 @@ fun Modifier.pressClick(
         .drawWithContent {
             drawContent()
             if (focused) {
-                val stroke = Stroke(width = 3.dp.toPx())
-                when (val outline = shape.createOutline(size, layoutDirection, this)) {
-                    is Outline.Rectangle -> drawRect(
-                        color = Lavender,
-                        topLeft = outline.rect.topLeft,
-                        size = outline.rect.size,
-                        style = stroke,
-                    )
-                    is Outline.Rounded -> drawRoundRect(
-                        color = Lavender,
-                        topLeft = Offset(outline.roundRect.left, outline.roundRect.top),
-                        size = Size(outline.roundRect.width, outline.roundRect.height),
-                        cornerRadius = CornerRadius(
-                            outline.roundRect.topLeftCornerRadius.x,
-                            outline.roundRect.topLeftCornerRadius.y,
-                        ),
-                        style = stroke,
-                    )
-                    is Outline.Generic -> drawPath(path = outline.path, color = Lavender, style = stroke)
-                }
+                // Halo lavanda suave por fuera y un borde blanco grueso por dentro: se ve bien en TV.
+                drawFocusOutline(shape, Stroke(width = 16.dp.toPx()), Lavender.copy(alpha = 0.45f))
+                drawFocusOutline(shape, Stroke(width = 4.dp.toPx()), Color.White)
             }
         }
+}
+
+private fun DrawScope.drawFocusOutline(shape: Shape, stroke: Stroke, color: Color) {
+    when (val outline = shape.createOutline(size, layoutDirection, this)) {
+        is Outline.Rectangle -> drawRect(
+            color = color,
+            topLeft = outline.rect.topLeft,
+            size = outline.rect.size,
+            style = stroke,
+        )
+        is Outline.Rounded -> drawRoundRect(
+            color = color,
+            topLeft = Offset(outline.roundRect.left, outline.roundRect.top),
+            size = Size(outline.roundRect.width, outline.roundRect.height),
+            cornerRadius = CornerRadius(
+                outline.roundRect.topLeftCornerRadius.x,
+                outline.roundRect.topLeftCornerRadius.y,
+            ),
+            style = stroke,
+        )
+        is Outline.Generic -> drawPath(path = outline.path, color = color, style = stroke)
+    }
 }

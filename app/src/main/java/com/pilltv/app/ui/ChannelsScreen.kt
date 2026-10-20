@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -161,13 +164,15 @@ fun ChannelsScreen(vm: MainViewModel, favoritesOnly: Boolean, goToLists: () -> U
                 )
             }
 
-            else -> LazyColumn(
+            else -> LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 300.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 200.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!favoritesOnly && query.isBlank() && group == null && recentShown.isNotEmpty()) {
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Vistos hace poco",
@@ -202,7 +207,7 @@ fun ChannelsScreen(vm: MainViewModel, favoritesOnly: Boolean, goToLists: () -> U
                         }
                     }
                 }
-                items(list, key = { it.url }) { ch ->
+                gridItems(list, key = { it.url }) { ch ->
                     // Solo se consulta la guía de los canales que están a la vista.
                     LaunchedEffect(ch.url, nowMs / 60_000L) { vm.loadEpg(ch) }
                     ChannelRow(
