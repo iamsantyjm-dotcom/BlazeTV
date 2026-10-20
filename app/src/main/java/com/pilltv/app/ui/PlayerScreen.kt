@@ -1,5 +1,6 @@
 package com.pilltv.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -170,8 +171,10 @@ fun PlayerScreen(vm: MainViewModel) {
 
     var showTracks by remember { mutableStateOf(false) }
     var showQuality by remember { mutableStateOf(false) }
-    // La cola va al costado del reproductor; el botón la muestra u oculta.
-    var showQueue by remember { mutableStateOf(true) }
+    // La cola va al costado del reproductor y solo se abre con su botón.
+    var showQueue by remember { mutableStateOf(false) }
+    // Atrás cierra primero la cola y, si ya está cerrada, el reproductor.
+    BackHandler(enabled = showQueue) { showQueue = false }
 
     var controls by remember { mutableStateOf(true) }
     var tick by remember { mutableIntStateOf(0) }
@@ -191,8 +194,8 @@ fun PlayerScreen(vm: MainViewModel) {
     val playFocus = remember { FocusRequester() }
 
     // Oculta los controles solos a los 3,5 s mientras se reproduce.
-    LaunchedEffect(controls, tick, playing) {
-        if (controls && playing) {
+    LaunchedEffect(controls, tick, playing, showQueue) {
+        if (controls && playing && !showQueue) {
             delay(3500)
             controls = false
         }
@@ -422,13 +425,6 @@ fun PlayerScreen(vm: MainViewModel) {
                         )
                         Text(text = ch.group, color = TextLo, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    // Cola de reproducción: canales de la lista o capítulos de la serie.
-                    if (queueItems.size > 1) {
-                        ControlButton(Icons.Rounded.QueueMusic, "Cola de reproducción") {
-                            showQueue = !showQueue
-                            tick++
-                        }
-                    }
                     // Calidad: solo si el video tiene más de una resolución disponible.
                     if (qualityOpts.size > 2) {
                         ControlButton(Icons.Rounded.HighQuality, "Calidad de video") {
@@ -553,6 +549,13 @@ fun PlayerScreen(vm: MainViewModel) {
                         ) {
                             vm.toggleFavorite(ch)
                             tick++
+                        }
+                        // Cola de reproducción: canales de la lista o capítulos de la serie.
+                        if (queueItems.size > 1) {
+                            ControlButton(Icons.Rounded.QueueMusic, "Cola de reproducción") {
+                                showQueue = !showQueue
+                                tick++
+                            }
                         }
                     }
                 }
