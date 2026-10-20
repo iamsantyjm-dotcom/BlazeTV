@@ -16,6 +16,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,6 +124,10 @@ fun AppRoot(vm: MainViewModel) {
     val focusManager = LocalFocusManager.current
     val gearRequester = remember { FocusRequester() }
     val tabRequesters = remember { List(Tabs.size) { FocusRequester() } }
+    // Rescate del foco: si el indicador del control se pierde (por ejemplo, al bajar por una lista),
+    // la siguiente flecha lo devuelve al contenido en lugar de quedarse sin hacer nada.
+    val contentFocus = remember { FocusRequester() }
+    var anyFocus by remember { mutableStateOf(true) }
     var searchFocused by remember { mutableStateOf(false) }
     var gearFocused by remember { mutableStateOf(false) }
     var pillFocused by remember { mutableStateOf(false) }
@@ -150,6 +155,7 @@ fun AppRoot(vm: MainViewModel) {
         Modifier
             .fillMaxSize()
             .background(Ink)
+            .onFocusChanged { anyFocus = it.hasFocus }
             .onPreviewKeyEvent { ev ->
                 if (ev.type != KeyEventType.KeyDown || playerOpen || overlayOpen) return@onPreviewKeyEvent false
                 val inSettings = tab == SETTINGS_TAB
@@ -157,7 +163,17 @@ fun AppRoot(vm: MainViewModel) {
                 val onPill = pillFocused && !inSettings
                 val inContent = !onSearch && !gearFocused && !onPill
                 val currentTab = if (inSettings) previousTab else tab
+                val isArrow = ev.key == Key.DirectionDown || ev.key == Key.DirectionUp ||
+                    ev.key == Key.DirectionLeft || ev.key == Key.DirectionRight
+                if (isArrow && !anyFocus) {
+                    return@onPreviewKeyEvent runCatching { contentFocus.requestFocus() }.isSuccess
+                }
                 when (ev.key) {
+                    // Desde los botones de arriba (buscar / ajustes), Abajo entra al contenido.
+                    Key.DirectionDown -> if (searchFocused || gearFocused) {
+                        focusManager.moveFocus(FocusDirection.Down) ||
+                            runCatching { contentFocus.requestFocus() }.isSuccess
+                    } else false
                     // Derecha: se mueve normal por la cuadrícula; solo si ya no hay nada a la
                     // derecha salta a lo más alto (Ajustes).
                     Key.DirectionRight -> if (inContent) {
@@ -183,7 +199,9 @@ fun AppRoot(vm: MainViewModel) {
             // Con la ficha, la búsqueda o el reproductor abiertos, lo de abajo no recibe el foco del control.
             modifier = Modifier
                 .fillMaxSize()
-                .focusProperties { canFocus = !(overlayOpen || playerOpen) },
+                .focusProperties { canFocus = !(overlayOpen || playerOpen) }
+                .focusRequester(contentFocus)
+                .focusGroup(),
             transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
             label = "pestanas",
         ) { t ->

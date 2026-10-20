@@ -2,7 +2,10 @@ package com.pilltv.app.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,9 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +35,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -110,7 +114,10 @@ internal fun CategoryPicker(groups: List<String>, selected: String?, onPick: (St
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Lista de categorías en una ventana sencilla y fija (sin hoja deslizable): no se arrastra, no se
+ * encoge y Atrás la cierra con una sola pulsación.
+ */
 @Composable
 internal fun CategorySheet(
     groups: List<String>,
@@ -120,32 +127,45 @@ internal fun CategorySheet(
 ) {
     // Al abrir, el foco va a la primera casilla ("Todas"), que siempre está compuesta en la cuadrícula.
     val firstTile = remember { FocusRequester() }
+    val panel = RoundedCornerShape(24.dp)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color(0xFF1E1B2E)) {
-        // Dentro de la hoja: la casilla debe estar compuesta antes de pedir el foco.
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
         LaunchedEffect(Unit) { runCatching { firstTile.requestFocus() } }
-        Text(
-            text = "Categorías",
-            color = TextHi,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-        )
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(140.dp),
-            modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
-            contentPadding = PaddingValues(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            Modifier
+                .padding(24.dp)
+                .widthIn(max = 720.dp)
+                .fillMaxWidth()
+                .clip(panel)
+                .background(InkSoft)
+                .border(1.dp, MatteLine, panel)
+                .padding(top = 12.dp, bottom = 8.dp),
         ) {
-            item {
-                CategoryTile("Todas", selected == null, Modifier.focusRequester(firstTile)) { onPick(null) }
-            }
-            items(groups, key = { it }) { g ->
-                CategoryTile(g, selected == g) { onPick(g) }
+            Text(
+                text = "Categorías",
+                color = TextHi,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(140.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 440.dp),
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    CategoryTile("Todas", selected == null, Modifier.focusRequester(firstTile)) { onPick(null) }
+                }
+                items(groups, key = { it }) { g ->
+                    CategoryTile(g, selected == g) { onPick(g) }
+                }
             }
         }
-        Spacer(Modifier.height(24.dp))
     }
 }
 
