@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.focus.FocusRequester
@@ -128,14 +130,19 @@ internal fun CategorySheet(
     // Al abrir, el foco va a la primera casilla ("Todas"), que siempre está compuesta en la cuadrícula.
     val firstTile = remember { FocusRequester() }
     val panel = RoundedCornerShape(24.dp)
+    // La ventana es independiente de la pantalla principal: tiene su propia navegación Arriba/Abajo.
+    val nav = rememberTvNav(topMargin = 16.dp, bottomMargin = 16.dp)
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         LaunchedEffect(Unit) { runCatching { firstTile.requestFocus() } }
+        CompositionLocalProvider(LocalTvNav provides nav) {
         Column(
             Modifier
+                .onSizeChanged { nav.viewportH = it.height.toFloat() }
+                .tvNavKeys(nav)
                 .padding(24.dp)
                 .widthIn(max = 720.dp)
                 .fillMaxWidth()
@@ -165,6 +172,7 @@ internal fun CategorySheet(
                     CategoryTile(g, selected == g) { onPick(g) }
                 }
             }
+        }
         }
     }
 }

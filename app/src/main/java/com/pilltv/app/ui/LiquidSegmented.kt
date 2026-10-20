@@ -110,7 +110,7 @@ private fun Modifier.drawMarca(measured: Boolean, left: Float, right: Float): Mo
         val w = (right - left).coerceAtLeast(0f)
         drawRoundRect(
             brush = Brush.horizontalGradient(
-                colors = listOf(Color(0xFFFFB36B), Lavender),
+                colors = listOf(Lavender, Lavender),
                 startX = left,
                 endX = left + w,
             ),

@@ -47,6 +47,7 @@ fun Modifier.pressClick(
         label = "focusScale",
     )
     return this
+        .tvEntry(enabled)
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
@@ -106,6 +107,7 @@ fun Modifier.focusRing(
         label = "ringScale",
     )
     return this
+        .tvEntry()
         .onFocusChanged { focused = it.hasFocus }
         .graphicsLayer {
             scaleX = s

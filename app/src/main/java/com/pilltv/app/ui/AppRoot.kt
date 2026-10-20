@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,6 +71,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
@@ -119,6 +121,9 @@ fun AppRoot(vm: MainViewModel) {
 
     val overlayOpen = detail != null || searchOpen
 
+    // Navegación Arriba/Abajo propia para el control remoto (ver TvNav.kt).
+    val nav = rememberTvNav(topMargin = 64.dp, bottomMargin = 150.dp)
+
     // Atajos del control remoto: dónde está el foco ahora (arriba, abajo o en el contenido).
     val focusManager = LocalFocusManager.current
     val gearRequester = remember { FocusRequester() }
@@ -146,10 +151,12 @@ fun AppRoot(vm: MainViewModel) {
         toggleSettings()
     }
 
+    CompositionLocalProvider(LocalTvNav provides nav) {
     Box(
         Modifier
             .fillMaxSize()
             .background(Ink)
+            .onSizeChanged { nav.viewportH = it.height.toFloat() }
             .onPreviewKeyEvent { ev ->
                 if (ev.type != KeyEventType.KeyDown || playerOpen || overlayOpen) return@onPreviewKeyEvent false
                 val inSettings = tab == SETTINGS_TAB
@@ -158,6 +165,8 @@ fun AppRoot(vm: MainViewModel) {
                 val inContent = !onSearch && !gearFocused && !onPill
                 val currentTab = if (inSettings) previousTab else tab
                 when (ev.key) {
+                    Key.DirectionDown -> nav.move(true)
+                    Key.DirectionUp -> nav.move(false)
                     // Derecha: se mueve normal por la cuadrícula; solo si ya no hay nada a la
                     // derecha salta a lo más alto (Ajustes).
                     Key.DirectionRight -> if (inContent) {
@@ -284,6 +293,7 @@ fun AppRoot(vm: MainViewModel) {
         ) {
             PlayerScreen(vm)
         }
+    }
     }
 }
 

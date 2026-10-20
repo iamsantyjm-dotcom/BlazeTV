@@ -130,7 +130,7 @@ fun MoviesScreen(vm: MainViewModel, goToLists: () -> Unit) {
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
                 )
-                Button(onClick = goToLists) { Text("Ver listas") }
+                Button(onClick = goToLists, modifier = Modifier.focusRing()) { Text("Ver listas") }
             }
 
             nothingToShow && !(continueList.isNotEmpty() && !seriesMode && query.isBlank() && group == null) ->

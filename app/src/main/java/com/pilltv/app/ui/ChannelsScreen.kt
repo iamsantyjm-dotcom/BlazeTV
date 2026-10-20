@@ -339,7 +339,7 @@ private fun EmptyState(favoritesOnly: Boolean, goToLists: () -> Unit) {
             modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
         )
         if (!favoritesOnly) {
-            Button(onClick = goToLists) { Text("Agregar lista") }
+            Button(onClick = goToLists, modifier = Modifier.focusRing()) { Text("Agregar lista") }
         }
     }
 }
