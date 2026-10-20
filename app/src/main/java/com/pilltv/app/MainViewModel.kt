@@ -164,12 +164,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val showGuide = settings.showGuide
     val defaultLiveGroup = settings.defaultLiveGroup
     val hideAdult = settings.hideAdult
+    val miniPlayer = settings.miniPlayer
     val hasPin = settings.hasPin
     fun setAutoNextEpisodes(v: Boolean) = settings.setAutoNextEpisodes(v)
     fun setLandscapeStart(v: Boolean) = settings.setLandscapeStart(v)
     fun setShowGuide(v: Boolean) = settings.setShowGuide(v)
     fun setDefaultLiveGroup(group: String?) = settings.setDefaultLiveGroup(group)
     fun setHideAdult(v: Boolean) = settings.setHideAdult(v)
+    fun setMiniPlayer(v: Boolean) = settings.setMiniPlayer(v)
     fun checkPin(pin: String): Boolean = settings.checkPin(pin)
     fun setPin(pin: String?) = settings.setPin(pin)
 
@@ -838,6 +840,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun closePlayer() {
+        // Sin mini reproductor, al salir del reproductor se detiene el contenido.
+        if (!settings.miniPlayer.value) {
+            stop()
+            return
+        }
         recordProgress()
         persistProgress()
         _playerOpen.value = false

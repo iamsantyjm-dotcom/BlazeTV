@@ -8,41 +8,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Superficies mate (sólidas, sin transparencia). */
+val MatteSurface = Color(0xFF1C1C1F)
+val MatteLine = Color(0xFF2C2C31)
+
 /**
- * Superficie de cristal para fondos oscuros: velo translúcido que se aclara hacia arriba
- * y un borde con brillo en la parte superior. Sin desenfoque (Haze), para que las listas
- * largas sigan fluidas. Si se pasa [tint], el cristal se tiñe con ese color (por ejemplo, el lavanda del canal activo).
+ * Superficie mate: color sólido y un borde fino. Si se pasa [tint], la superficie se tiñe
+ * levemente con ese color (por ejemplo, el marfil del canal activo) y el borde se aclara.
+ * El nombre se conserva para no tocar todas las pantallas.
  */
 fun Modifier.glassCard(
     shape: Shape = RoundedCornerShape(22.dp),
     tint: Color? = null,
 ): Modifier {
-    val base = tint ?: Color.White
-    val fill = Brush.verticalGradient(
-        listOf(
-            base.copy(alpha = if (tint != null) 0.26f else 0.12f),
-            base.copy(alpha = if (tint != null) 0.10f else 0.035f),
-        )
-    )
-    val edge = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = 0.28f),
-            Color.White.copy(alpha = 0.06f),
-        )
-    )
+    val fill = if (tint != null) lerp(MatteSurface, tint, 0.14f) else MatteSurface
+    val edge = if (tint != null) lerp(MatteLine, tint, 0.55f) else MatteLine
     return this
         .clip(shape)
         .background(fill)
         .border(1.dp, edge, shape)
 }
 
-/** Tarjeta de cristal con contenido propio. */
+/** Tarjeta mate con contenido propio. */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,

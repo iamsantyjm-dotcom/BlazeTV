@@ -32,44 +32,18 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pilltv.app.data.Channel
 
-/** Fondo con dos halos de color que cambian según la pestaña. */
+/** Fondo mate: un solo color plano, sin halos. Los parámetros se conservan por compatibilidad. */
 @Composable
 fun AppBackground(primary: Color = Lavender, secondary: Color = Azure) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Ink)
-            .drawBehind {
-                val c1 = Offset(size.width * 0.95f, size.height * 0.05f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(primary.copy(alpha = 0.38f), Color.Transparent),
-                        center = c1,
-                        radius = size.width * 0.95f,
-                    ),
-                    radius = size.width * 0.95f,
-                    center = c1,
-                )
-                val c2 = Offset(size.width * 0.05f, size.height * 0.62f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(secondary.copy(alpha = 0.30f), Color.Transparent),
-                        center = c2,
-                        radius = size.width * 0.9f,
-                    ),
-                    radius = size.width * 0.9f,
-                    center = c2,
-                )
-            }
-    )
+    Box(Modifier.fillMaxSize().background(Ink))
 }
 
-/** Cápsula de cristal: velo claro y borde fino. Sin desenfoque, para que sea fluida en TV. */
+/** Superficie mate para botones y cápsulas: color sólido (sin transparencia) y un borde fino. */
 fun Modifier.glassPill(shape: Shape = CircleShape): Modifier =
     this
         .clip(shape)
-        .background(Color.White.copy(alpha = 0.10f))
-        .border(1.dp, Color.White.copy(alpha = 0.20f), shape)
+        .background(MatteSurface)
+        .border(1.dp, MatteLine, shape)
 
 @Composable
 fun ChannelLogo(channel: Channel, size: Dp, modifier: Modifier = Modifier) {

@@ -84,14 +84,6 @@ import com.pilltv.app.data.Channel
 
 private const val SETTINGS_TAB = 3
 
-/** Dos halos de color por pestaña: en vivo, películas, favoritos y ajustes. */
-private fun moodOf(tab: Int): Pair<Color, Color> = when (tab) {
-    0 -> Lavender to Azure
-    1 -> Color(0xFFFF5E8A) to Color(0xFF7B5CFF)
-    2 -> Color(0xFFFFB347) to Color(0xFFFF5E8A)
-    else -> Color(0xFF3FD0C9) to Color(0xFF4C7DFF)
-}
-
 private data class TabItem(val label: String, val icon: ImageVector)
 
 private val Tabs = listOf(
@@ -101,11 +93,13 @@ private val Tabs = listOf(
 )
 
 private val PillShape = RoundedCornerShape(percent = 50)
+private val MiniShape = RoundedCornerShape(18.dp)
 
 @Composable
 fun AppRoot(vm: MainViewModel) {
     val playerOpen by vm.playerOpen.collectAsStateWithLifecycle()
     val detail by vm.detail.collectAsStateWithLifecycle()
+    val miniEnabled by vm.miniPlayer.collectAsStateWithLifecycle()
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Pestaña a la que volver al cerrar Ajustes (el engrane ya no está en la barra inferior).
@@ -182,10 +176,7 @@ fun AppRoot(vm: MainViewModel) {
                 }
             },
     ) {
-        // El fondo cambia de tono suavemente según la pestaña: es el único efecto animado que se conserva.
-        val moodA by animateColorAsState(moodOf(tab).first, tween(1100), label = "moodA")
-        val moodB by animateColorAsState(moodOf(tab).second, tween(1100), label = "moodB")
-        AppBackground(moodA, moodB)
+        AppBackground()
 
         AnimatedContent(
             targetState = tab,
@@ -268,7 +259,7 @@ fun AppRoot(vm: MainViewModel) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                MiniPillHost(vm)
+                if (miniEnabled) MiniPillHost(vm)
                 AnimatedVisibility(
                     visible = tab != SETTINGS_TAB,
                     enter = fadeIn(tween(200)) + slideInVertically(tween(250)) { it / 2 },
@@ -423,7 +414,7 @@ private fun MiniPill(c: Channel, vm: MainViewModel) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glassPill(PillShape)
+            .glassPill(MiniShape)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

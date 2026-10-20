@@ -1,6 +1,7 @@
 package com.pilltv.app.ui
 
 import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -130,6 +131,7 @@ private fun MainPage(vm: MainViewModel, onPage: (Int) -> Unit) {
     val autoNext by vm.autoNextEpisodes.collectAsStateWithLifecycle()
     val landscape by vm.landscapeStart.collectAsStateWithLifecycle()
     val showGuide by vm.showGuide.collectAsStateWithLifecycle()
+    val miniPlayer by vm.miniPlayer.collectAsStateWithLifecycle()
     val defaultGroup by vm.defaultLiveGroup.collectAsStateWithLifecycle()
     val hideAdult by vm.hideAdult.collectAsStateWithLifecycle()
     val pinSet by vm.hasPin.collectAsStateWithLifecycle()
@@ -205,6 +207,13 @@ private fun MainPage(vm: MainViewModel, onPage: (Int) -> Unit) {
                 subtitle = "Los canales y películas se abren girados",
                 checked = landscape,
                 onChange = { vm.setLandscapeStart(it) },
+            )
+            SettingsToggle(
+                icon = Icons.Rounded.PlayArrow,
+                title = "Mini reproductor",
+                subtitle = "Al salir del reproductor, el contenido sigue en una barra abajo. Si lo desactivas, se detiene",
+                checked = miniPlayer,
+                onChange = { vm.setMiniPlayer(it) },
             )
 
             SectionLabel("TV en vivo")

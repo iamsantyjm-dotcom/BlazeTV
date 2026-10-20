@@ -74,7 +74,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
@@ -151,8 +153,9 @@ private fun ControlChip(icon: ImageVector, text: String, onClick: () -> Unit) {
  * Reproductor pensado para el control remoto.
  *
  * - Con los controles visibles, el foco se mueve entre los botones con las flechas y OK activa el botón.
- * - Con los controles ocultos, las flechas dan órdenes directas: izquierda/derecha saltan 10 s,
- *   arriba/abajo cambian de canal en vivo, OK pausa o reanuda y cualquier tecla muestra los controles.
+ * - Con los controles ocultos, el primer toque de OK o de una flecha (o un toque en pantalla) solo
+ *   muestra los controles: no pausa, no salta ni cambia de canal. Las teclas multimedia del control
+ *   (play/pausa, adelantar, retroceder) siguen actuando directo.
  * - Atrás cierra el reproductor (lo maneja AppRoot).
  */
 @OptIn(UnstableApi::class)
@@ -301,6 +304,10 @@ fun PlayerScreen(vm: MainViewModel) {
             .background(Color.Black)
             .focusRequester(rootFocus)
             .focusable()
+            // Un toque en pantalla con los controles ocultos solo los muestra.
+            .pointerInput(controls) {
+                detectTapGestures { if (!controls) wake() }
+            }
             // Cualquier tecla mantiene los controles vivos mientras se navega.
             .onPreviewKeyEvent { e ->
                 if (e.type == KeyEventType.KeyDown) tick++
@@ -310,28 +317,24 @@ fun PlayerScreen(vm: MainViewModel) {
             .onKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown || controls) return@onKeyEvent false
                 when (e.key) {
-                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> {
+                    // Primer toque: solo despierta los controles.
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter,
+                    Key.DirectionLeft, Key.DirectionRight, Key.DirectionUp, Key.DirectionDown -> {
+                        wake()
+                        true
+                    }
+                    Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> {
                         vm.togglePlay()
                         wake()
                         true
                     }
-                    Key.DirectionLeft, Key.MediaRewind -> {
+                    Key.MediaRewind -> {
                         jump(-10_000L)
                         wake()
                         true
                     }
-                    Key.DirectionRight, Key.MediaFastForward -> {
+                    Key.MediaFastForward -> {
                         jump(10_000L)
-                        wake()
-                        true
-                    }
-                    Key.DirectionUp -> {
-                        if (!isMovie) vm.step(1)
-                        wake()
-                        true
-                    }
-                    Key.DirectionDown -> {
-                        if (!isMovie) vm.step(-1)
                         wake()
                         true
                     }

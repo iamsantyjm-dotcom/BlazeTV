@@ -21,6 +21,9 @@ class AppSettings(private val prefs: Prefs) {
     private val _defaultGroup = MutableStateFlow(prefs.getString("default_live_group"))
     val defaultLiveGroup: StateFlow<String?> = _defaultGroup.asStateFlow()
 
+    private val _miniPlayer = MutableStateFlow(prefs.getBool("mini_player", true))
+    val miniPlayer: StateFlow<Boolean> = _miniPlayer.asStateFlow()
+
     private val _hideAdult = MutableStateFlow(prefs.getBool("hide_adult", true))
     val hideAdult: StateFlow<Boolean> = _hideAdult.asStateFlow()
 
@@ -45,6 +48,11 @@ class AppSettings(private val prefs: Prefs) {
     fun setDefaultLiveGroup(group: String?) {
         _defaultGroup.value = group
         prefs.setString("default_live_group", group)
+    }
+
+    fun setMiniPlayer(v: Boolean) {
+        _miniPlayer.value = v
+        prefs.setBool("mini_player", v)
     }
 
     fun setHideAdult(v: Boolean) {
