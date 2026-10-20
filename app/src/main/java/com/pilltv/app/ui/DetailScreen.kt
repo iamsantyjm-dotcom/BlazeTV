@@ -1,6 +1,7 @@
 package com.pilltv.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -52,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import com.pilltv.app.MainViewModel
 import com.pilltv.app.data.Channel
 import com.pilltv.app.data.DetailTarget
@@ -62,10 +67,21 @@ import com.pilltv.app.data.Series
 /** Ficha de una película o de una serie: carátula, año, sinopsis y (en series) temporadas y capítulos. */
 @Composable
 fun DetailScreen(vm: MainViewModel, target: DetailTarget) {
+    // Al abrir la ficha el foco del control pasa a ella (si no, OK volvía a tocar la carátula de abajo).
+    val rootFocus = remember { FocusRequester() }
+    LaunchedEffect(target) {
+        delay(50)
+        repeat(6) {
+            if (runCatching { rootFocus.requestFocus() }.isSuccess) return@LaunchedEffect
+            delay(100)
+        }
+    }
     Box(
         Modifier
             .fillMaxSize()
             .background(Ink)
+            .focusRequester(rootFocus)
+            .focusGroup()
             // Absorbe los toques para que no lleguen a la pantalla que está debajo.
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
@@ -88,6 +104,14 @@ private fun MovieDetail(vm: MainViewModel, ch: Channel) {
     val p = progress[ch.url]
     val watched = p?.watched == true
     var expanded by remember(ch.url) { mutableStateOf(false) }
+    val playFocus = remember { FocusRequester() }
+    LaunchedEffect(ch.url) {
+        delay(300)
+        repeat(8) {
+            if (runCatching { playFocus.requestFocus() }.isSuccess) return@LaunchedEffect
+            delay(150)
+        }
+    }
 
     val meta = listOfNotNull(
         info?.year ?: ch.year,
@@ -109,8 +133,8 @@ private fun MovieDetail(vm: MainViewModel, ch: Channel) {
         item { Header(info?.cover ?: ch.logo, ch.name, meta, info?.genre) }
         item {
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                PlayButton(label) { vm.play(ch, listOf(ch)) }
-                TextButton(onClick = { vm.setWatched(ch, !watched) }) {
+                PlayButton(label, playFocus) { vm.play(ch, listOf(ch)) }
+                TextButton(onClick = { vm.setWatched(ch, !watched) }, modifier = Modifier.focusRing()) {
                     Text(if (watched) "Marcar como no vista" else "Marcar como vista", color = TextLo)
                 }
             }
@@ -187,7 +211,7 @@ private fun ShowDetail(vm: MainViewModel, s: Series) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text("No se pudieron cargar los capítulos.", color = TextLo)
-                    Button(onClick = { vm.openSeries(s) }) { Text("Reintentar") }
+                    Button(onClick = { vm.openSeries(s) }, modifier = Modifier.focusRing()) { Text("Reintentar") }
                 }
             }
 
@@ -312,7 +336,7 @@ private fun EpisodeRow(
                 }
             }
         }
-        IconButton(onClick = onToggleWatched) {
+        IconButton(onClick = onToggleWatched, modifier = Modifier.focusRing(CircleShape)) {
             Icon(
                 imageVector = if (watched) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
                 contentDescription = if (watched) "Marcar como no visto" else "Marcar como visto",
@@ -326,7 +350,7 @@ private fun EpisodeRow(
 
 @Composable
 private fun BackBar(vm: MainViewModel) {
-    IconButton(onClick = { vm.closeDetail() }, modifier = Modifier.padding(start = 8.dp, top = 4.dp)) {
+    IconButton(onClick = { vm.closeDetail() }, modifier = Modifier.padding(start = 8.dp, top = 4.dp).focusRing(CircleShape)) {
         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Volver", tint = TextHi)
     }
 }
@@ -381,10 +405,13 @@ private fun Header(cover: String?, title: String, meta: String, extra: String?) 
 }
 
 @Composable
-private fun PlayButton(label: String, onClick: () -> Unit) {
+private fun PlayButton(label: String, focus: FocusRequester? = null, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (focus != null) Modifier.focusRequester(focus) else Modifier)
+            .focusRing(),
         colors = ButtonDefaults.buttonColors(containerColor = Lavender, contentColor = Ink),
     ) {
         Icon(Icons.Rounded.PlayArrow, contentDescription = null)

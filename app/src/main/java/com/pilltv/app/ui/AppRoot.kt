@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
@@ -188,7 +189,10 @@ fun AppRoot(vm: MainViewModel) {
 
         AnimatedContent(
             targetState = tab,
-            modifier = Modifier.fillMaxSize(),
+            // Con la ficha, la búsqueda o el reproductor abiertos, lo de abajo no recibe el foco del control.
+            modifier = Modifier
+                .fillMaxSize()
+                .focusProperties { canFocus = !(overlayOpen || playerOpen) },
             transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
             label = "pestanas",
         ) { t ->
@@ -248,7 +252,12 @@ fun AppRoot(vm: MainViewModel) {
         ) {
             SearchOverlay(vm) { searchOpen = false }
         }
-        detail?.let { DetailScreen(vm, it) }
+        detail?.let {
+            // Mientras se reproduce, la ficha que queda detrás tampoco debe recibir el foco.
+            Box(Modifier.fillMaxSize().focusProperties { canFocus = !playerOpen }) {
+                DetailScreen(vm, it)
+            }
+        }
 
         if (!playerOpen && !overlayOpen) {
             Column(
