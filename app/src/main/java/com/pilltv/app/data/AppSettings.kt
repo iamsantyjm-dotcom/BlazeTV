@@ -24,6 +24,10 @@ class AppSettings(private val prefs: Prefs) {
     private val _miniPlayer = MutableStateFlow(prefs.getBool("mini_player", true))
     val miniPlayer: StateFlow<Boolean> = _miniPlayer.asStateFlow()
 
+    // Formato de pantalla del reproductor: 0 = ajustar, 1 = rellenar (recorta), 2 = estirar.
+    private val _resizeMode = MutableStateFlow(prefs.getString("resize_mode")?.toIntOrNull()?.coerceIn(0, 2) ?: 0)
+    val resizeMode: StateFlow<Int> = _resizeMode.asStateFlow()
+
     private val _hideAdult = MutableStateFlow(prefs.getBool("hide_adult", true))
     val hideAdult: StateFlow<Boolean> = _hideAdult.asStateFlow()
 
@@ -53,6 +57,13 @@ class AppSettings(private val prefs: Prefs) {
     fun setMiniPlayer(v: Boolean) {
         _miniPlayer.value = v
         prefs.setBool("mini_player", v)
+    }
+
+    fun cycleResizeMode(): Int {
+        val next = (_resizeMode.value + 1) % 3
+        _resizeMode.value = next
+        prefs.setString("resize_mode", next.toString())
+        return next
     }
 
     fun setHideAdult(v: Boolean) {

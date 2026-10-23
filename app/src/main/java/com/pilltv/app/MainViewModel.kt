@@ -165,6 +165,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val defaultLiveGroup = settings.defaultLiveGroup
     val hideAdult = settings.hideAdult
     val miniPlayer = settings.miniPlayer
+    val resizeMode = settings.resizeMode
     val hasPin = settings.hasPin
     fun setAutoNextEpisodes(v: Boolean) = settings.setAutoNextEpisodes(v)
     fun setLandscapeStart(v: Boolean) = settings.setLandscapeStart(v)
@@ -172,6 +173,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setDefaultLiveGroup(group: String?) = settings.setDefaultLiveGroup(group)
     fun setHideAdult(v: Boolean) = settings.setHideAdult(v)
     fun setMiniPlayer(v: Boolean) = settings.setMiniPlayer(v)
+    fun cycleResizeMode(): Int = settings.cycleResizeMode()
     fun checkPin(pin: String): Boolean = settings.checkPin(pin)
     fun setPin(pin: String?) = settings.setPin(pin)
 

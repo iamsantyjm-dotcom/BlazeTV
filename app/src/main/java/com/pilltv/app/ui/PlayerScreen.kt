@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.SkipNext
@@ -88,6 +89,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.pilltv.app.MainViewModel
 import com.pilltv.app.TrackOption
@@ -166,6 +168,7 @@ fun PlayerScreen(vm: MainViewModel) {
     val buffering by vm.buffering.collectAsStateWithLifecycle()
     val error by vm.playerError.collectAsStateWithLifecycle()
     val favs by vm.favorites.collectAsStateWithLifecycle()
+    val resizeMode by vm.resizeMode.collectAsStateWithLifecycle()
 
     val audioOpts by vm.audioOptions.collectAsStateWithLifecycle()
     val textOpts by vm.textOptions.collectAsStateWithLifecycle()
@@ -351,6 +354,13 @@ fun PlayerScreen(vm: MainViewModel) {
                     useController = false
                     player = vm.player
                     keepScreenOn = true
+                }
+            },
+            update = {
+                it.resizeMode = when (resizeMode) {
+                    1 -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    2 -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                    else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
             },
             onRelease = { it.player = null },
@@ -551,6 +561,15 @@ fun PlayerScreen(vm: MainViewModel) {
                             description = "Favorito",
                         ) {
                             vm.toggleFavorite(ch)
+                            tick++
+                        }
+                        // Formato de pantalla: ajustar → rellenar → estirar. Se recuerda para la próxima vez.
+                        ControlButton(Icons.Rounded.AspectRatio, "Formato de pantalla") {
+                            notice = when (vm.cycleResizeMode()) {
+                                1 -> "Pantalla: rellenar (recorta los bordes)"
+                                2 -> "Pantalla: estirar"
+                                else -> "Pantalla: ajustar"
+                            }
                             tick++
                         }
                         // Cola de reproducción: canales de la lista o capítulos de la serie.
