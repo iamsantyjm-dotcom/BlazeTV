@@ -107,10 +107,13 @@ fun AppRoot(vm: MainViewModel) {
     // Pestaña a la que volver al cerrar Ajustes (el engrane ya no está en la barra inferior).
     var previousTab by rememberSaveable { mutableIntStateOf(0) }
     var settingsPage by rememberSaveable { mutableIntStateOf(0) }
+    // Verdadero si se entró a Ajustes por el atajo "Agregar lista": ahí Atrás debe salir de una vez.
+    var settingsDirect by rememberSaveable { mutableStateOf(false) }
     // Los botones "Agregar lista" de las pantallas vacías llevan directo a Ajustes > Mis listas.
     val goToLists = {
         if (tab != SETTINGS_TAB) previousTab = tab
         settingsPage = SettingsPages.LISTS
+        settingsDirect = true
         tab = SETTINGS_TAB
     }
 
@@ -141,13 +144,14 @@ fun AppRoot(vm: MainViewModel) {
     fun toggleSettings() {
         if (tab == SETTINGS_TAB) {
             settingsPage = SettingsPages.MAIN
+            settingsDirect = false
             tab = previousTab
         } else {
             previousTab = tab
             tab = SETTINGS_TAB
         }
     }
-    BackHandler(enabled = tab == SETTINGS_TAB && settingsPage == SettingsPages.MAIN && !playerOpen && !overlayOpen) {
+    BackHandler(enabled = tab == SETTINGS_TAB && (settingsPage == SettingsPages.MAIN || settingsDirect) && !playerOpen && !overlayOpen) {
         toggleSettings()
     }
 
@@ -203,8 +207,11 @@ fun AppRoot(vm: MainViewModel) {
                 else -> SettingsScreen(
                     vm,
                     page = settingsPage,
-                    onPage = { settingsPage = it },
-                    backEnabled = !playerOpen && !overlayOpen,
+                    onPage = {
+                        settingsPage = it
+                        settingsDirect = false
+                    },
+                    backEnabled = !playerOpen && !overlayOpen && !settingsDirect,
                 )
             }
         }
