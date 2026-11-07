@@ -38,6 +38,7 @@ import com.pilltv.app.data.Series
 import com.pilltv.app.data.SeriesCache
 import com.pilltv.app.data.SeriesData
 import com.pilltv.app.data.VodInfo
+import com.pilltv.app.data.XtreamAccount
 import com.pilltv.app.data.XtreamApi
 import com.pilltv.app.data.XtreamEpg
 import com.pilltv.app.data.folderKey
@@ -984,6 +985,40 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _sources.value = _sources.value + src
         prefs.saveSources(_sources.value)
         refreshAll()
+    }
+
+    /** Estado del inicio de sesión con Xtream: null = nada en curso. */
+    private val _xtreamBusy = MutableStateFlow(false)
+    val xtreamBusy: StateFlow<Boolean> = _xtreamBusy
+
+    /**
+     * Inicia sesión con servidor, usuario y contraseña. Comprueba los datos en el servidor y,
+     * si son correctos, guarda la lista. [onResult] recibe null si salió bien o el motivo del error.
+     */
+    fun loginXtream(name: String, server: String, user: String, pass: String, onResult: (String?) -> Unit) {
+        val base = XtreamApi.normalizeServer(server)
+        if (base == null) {
+            onResult("Escribe la dirección del servidor, por ejemplo http://servidor:8080")
+            return
+        }
+        if (user.isBlank() || pass.isBlank()) {
+            onResult("Escribe el usuario y la contraseña")
+            return
+        }
+        val acc = XtreamAccount(base, user.trim(), pass.trim(), "ts")
+        viewModelScope.launch {
+            _xtreamBusy.value = true
+            val error = withContext(Dispatchers.IO) { XtreamApi.login(acc) }
+            _xtreamBusy.value = false
+            if (error == null) {
+                val label = name.trim().ifBlank { "Xtream ${_sources.value.size + 1}" }
+                val src = PlaylistSource(UUID.randomUUID().toString(), label, XtreamApi.buildListUrl(acc))
+                _sources.value = _sources.value + src
+                prefs.saveSources(_sources.value)
+                refreshAll()
+            }
+            onResult(error)
+        }
     }
 
     fun updateSource(id: String, name: String, url: String) {
