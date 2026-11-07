@@ -60,6 +60,58 @@ object XtreamApi {
     /** true si es una película de una lista Xtream (por lo tanto se le puede pedir sinopsis). */
     fun isVod(url: String): Boolean = url.contains("/movie/") && streamPattern.matches(url)
 
+    // ---------- Inicio de sesión con servidor, usuario y contraseña ----------
+
+    /** Arma la dirección get.php equivalente, que es la que guarda la app como lista. */
+    fun buildListUrl(acc: XtreamAccount): String =
+        "${acc.base}/get.php?username=${Uri.encode(acc.user)}&password=${Uri.encode(acc.pass)}" +
+            "&type=m3u_plus&output=${acc.ext}"
+
+    /** Deja el servidor como http(s)://host:puerto, sin barras ni rutas de más. */
+    fun normalizeServer(raw: String): String? {
+        var s = raw.trim()
+        if (s.isEmpty()) return null
+        if (!s.startsWith("http://", true) && !s.startsWith("https://", true)) s = "http://$s"
+        for (marker in listOf("/get.php", "/player_api.php", "/c/", "/portal.php")) {
+            val i = s.indexOf(marker, ignoreCase = true)
+            if (i > 0) s = s.substring(0, i)
+        }
+        s = s.trimEnd('/')
+        val host = s.substringAfter("://")
+        return if (host.isBlank() || host.contains(' ')) null else s
+    }
+
+    /** Pregunta al servidor si el usuario y la clave son válidos. Devuelve null si todo está bien, o el motivo del error. */
+    fun login(acc: XtreamAccount): String? {
+        return try {
+            val conn = open("${acc.base}/player_api.php?username=${Uri.encode(acc.user)}&password=${Uri.encode(acc.pass)}")
+            conn.connectTimeout = 12_000
+            conn.readTimeout = 20_000
+            try {
+                val body = conn.inputStream.bufferedReader().use { it.readText() }
+                val info = JSONObject(body).optJSONObject("user_info")
+                    ?: return "El servidor no respondió como un servidor Xtream"
+                val auth = info.opt("auth")?.toString()
+                if (auth != "1" && auth != "true") return "Usuario o contraseña incorrectos"
+                val status = info.optString("status")
+                if (status.isNotBlank() && !status.equals("Active", true)) {
+                    return "La cuenta no está activa (estado: $status)"
+                }
+                null
+            } finally {
+                conn.disconnect()
+            }
+        } catch (e: java.net.UnknownHostException) {
+            "No se encontró el servidor. Revisa la dirección"
+        } catch (e: java.net.SocketTimeoutException) {
+            "El servidor tardó demasiado en responder"
+        } catch (e: org.json.JSONException) {
+            "El servidor no respondió como un servidor Xtream"
+        } catch (e: IOException) {
+            "No se pudo conectar con el servidor"
+        }
+    }
+
     // ---------- Carga completa de la lista ----------
 
     /** Descarga en paralelo canales, películas y series. Si no llega nada, lanza error para usar el M3U. */
