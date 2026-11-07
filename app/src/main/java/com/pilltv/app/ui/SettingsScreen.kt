@@ -378,6 +378,7 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
     val ctx = LocalContext.current
 
     var adding by remember { mutableStateOf(false) }
+    var xtreamLogin by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<PlaylistSource?>(null) }
     var deleting by remember { mutableStateOf<PlaylistSource?>(null) }
 
@@ -435,6 +436,16 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
                 }
             }
             item {
+                Button(
+                    modifier = Modifier.focusRing(),
+                    onClick = { xtreamLogin = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Lavender, contentColor = Ink),
+                ) {
+                    Icon(Icons.Rounded.Key, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text("Iniciar sesión con Xtream", modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+            item {
                 TextButton(
                     modifier = Modifier.focusRing(),
                     onClick = { if (!loading) vm.refreshAll() },
@@ -462,6 +473,10 @@ private fun ListsPage(vm: MainViewModel, onBack: () -> Unit) {
                 adding = false
             },
         )
+    }
+
+    if (xtreamLogin) {
+        XtreamLoginDialog(vm = vm, onDismiss = { xtreamLogin = false })
     }
 
     val ed = editing
@@ -604,13 +619,88 @@ private fun SourceDialog(
     )
 }
 
+/** Inicio de sesión con Xtream: servidor, usuario y contraseña. Se comprueban antes de guardar. */
 @Composable
-private fun DialogField(value: String, label: String, singleLine: Boolean, onChange: (String) -> Unit) {
+private fun XtreamLoginDialog(vm: MainViewModel, onDismiss: () -> Unit) {
+    val busy by vm.xtreamBusy.collectAsStateWithLifecycle()
+    var name by remember { mutableStateOf("") }
+    var server by remember { mutableStateOf("") }
+    var user by remember { mutableStateOf("") }
+    var pass by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    val canTry = server.isNotBlank() && user.isNotBlank() && pass.isNotBlank() && !busy
+
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        containerColor = DialogBg,
+        title = { Text("Iniciar sesión con Xtream", color = TextHi) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogField(name, "Nombre (opcional)", singleLine = true) { name = it }
+                DialogField(server, "Servidor (http://servidor:puerto)", singleLine = true, keyboard = KeyboardType.Uri) {
+                    server = it
+                    error = null
+                }
+                DialogField(user, "Usuario", singleLine = true) {
+                    user = it
+                    error = null
+                }
+                DialogField(pass, "Contraseña", singleLine = true, password = true) {
+                    pass = it
+                    error = null
+                }
+                val e = error
+                if (e != null) Text(e, color = Coral, fontSize = 12.sp)
+                if (busy) Text("Comprobando los datos…", color = TextLo, fontSize = 12.sp)
+                if (server.trim().startsWith("http://", true)) {
+                    Text(
+                        "Conexión sin cifrar (http). Úsala solo si confías en el proveedor.",
+                        color = AmberWarn,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                modifier = Modifier.focusRing(),
+                enabled = canTry,
+                onClick = {
+                    error = null
+                    vm.loginXtream(name, server, user, pass) { result ->
+                        if (result == null) onDismiss() else error = result
+                    }
+                },
+                colors = ButtonDefaults.textButtonColors(contentColor = Lavender, disabledContentColor = TextLo),
+            ) { Text(if (busy) "Entrando…" else "Entrar") }
+        },
+        dismissButton = {
+            TextButton(
+                modifier = Modifier.focusRing(),
+                enabled = !busy,
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = Lavender, disabledContentColor = TextLo),
+            ) { Text("Cancelar") }
+        },
+    )
+}
+
+@Composable
+private fun DialogField(
+    value: String,
+    label: String,
+    singleLine: Boolean,
+    keyboard: KeyboardType = KeyboardType.Text,
+    password: Boolean = false,
+    onChange: (String) -> Unit,
+) {
     TextField(
         value = value,
         onValueChange = onChange,
         singleLine = singleLine,
         maxLines = if (singleLine) 1 else 4,
+        visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard),
         label = { Text(label, color = TextLo) },
         shape = RoundedCornerShape(16.dp),
         colors = TextFieldDefaults.colors(
